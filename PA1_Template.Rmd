@@ -1,0 +1,87 @@
+---
+title: "PA1_template"
+author: "Varun Raste"
+date: "23/07/2020"
+output: html_document
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Activity Data Analysis
+```{r,message=FALSE,warnings=FALSE,echo=TRUE}
+library(readr)
+library(dplyr)
+df <- read_csv("activity.csv")
+attach(df)
+df1=df %>% group_by(date)%>% summarise(Total_no_of_steps=sum(steps),Average_no_of_steps=mean(steps),Median_no_of_steps=median(steps))
+head(df1)
+```
+
+### What is mean total number of steps taken per day?
+
+```{r,message=FALSE,warnings=FALSE,echo=TRUE}
+###Total no of steps
+df1[,c('date','Total_no_of_steps')]
+##Histogram
+hist(df1$Total_no_of_steps)
+##
+df1[,c('date','Average_no_of_steps')]
+##
+df1[,c('date','Median_no_of_steps')]
+```
+
+
+### What is the average daily activity pattern?
+```{r,message=FALSE,warnings=FALSE,echo=TRUE}
+df2=df %>% group_by(interval)%>% summarise(Avergae_steps_taken=mean(steps,na.rm=TRUE))
+ts.plot(df2$Avergae_steps_taken,xlab="Interval(5 minute)",ylab="Average Steps Taken")
+```
+ 
+ 100 to 105-minute(1st starts at 12:00 am-12:05 a.m) interval, on average across all the days in the dataset, contains the maximum number of steps.
+
+### For missing values imputation
+```{r,message=FALSE,warnings=FALSE,echo=TRUE}
+library(questionr)
+freq.na(df)
+### 
+df3=merge(df,df1,by="date",all.x=TRUE)
+for(i in 1:length(df3$steps))
+{
+  df3$Average_no_of_steps[i]=ifelse(is.na(df3$Average_no_of_steps[i])==TRUE,0,df3$Average_no_of_steps[i])
+  df3$steps[i]=ifelse(is.na(df3$steps[i])==TRUE,df3$Average_no_of_steps[i],df3$steps[i])
+}
+head(df3,5)
+######
+freq.na(df3)
+
+###### Plotting histogram
+df$steps=replace(df$steps,is.na(df$steps)==TRUE,0)
+df4=df %>% group_by(date)%>% summarise(Total_no_of_steps=sum(steps),Average_no_of_steps=mean(steps),Median_no_of_steps=median(steps))
+par(mfrow=c(2,1))
+hist(df1$Total_no_of_steps,xlab='Total No. of steps',ylab='Frequency',main='Histogram of Total No. of steps(Before Imputation)')
+hist(df4$Total_no_of_steps,xlab='Total No. of steps',ylab='Frequency',main='Histogram of Total No. of steps(After Imputation)')
+
+```
+
+
+After plotting histogram we can see the distribution near bin 0 has rose. Because we have imputed the NA's. 
+
+
+### Are there differences in activity patterns between weekdays and weekends?
+```{r,message=FALSE,warnings=FALSE,echo=TRUE}
+library(ggplot2)
+df$Weekday=weekdays(df$date)
+df$weekend=ifelse(df$Weekday=='Saturday'|df$Weekday=='Sunday',1,0)
+df5=df %>% group_by(weekend,interval) %>% summarise(Average_steps=mean(steps))
+ggplot(data = df5, aes(interval, Average_steps)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue") + 
+  labs(title = "Panel plot for Average no of steps",
+       subtitle="1st graph represents for weekdays and later represents weekend",
+       y = "Frequency", x = "Interval(5 minute)") + 
+  facet_grid(weekend~.) 
+```
+
+Yes there is difference for some intervals in weekdays & weekend.Its evident from graph.
